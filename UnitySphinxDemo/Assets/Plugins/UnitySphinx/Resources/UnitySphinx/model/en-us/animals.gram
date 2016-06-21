@@ -1,0 +1,46 @@
+#JSGF V1.0;
+
+/**
+ * JSGF Digits Grammar file
+ **/
+
+grammar digits;
+
+public <miscellaneous> = (quit);
+
+public <basicCmd> = <polite>* <verbs> [<pronoun>] <nouns> [<polite>];
+
+// public <basicCmd> = <polite>* <move> <dir> [<polite>];
+
+//<dir> = (<cardinal> | <local>);
+
+//<cardinal> = (north|south|east|west|northeast|northwest|southeast|southwest);
+
+//<local> = (forward|backwards|left|right|up|down);
+
+<polite> = (please | would you | thank you | oh mighty sphinx);
+
+<pronoun> = (the | that | his | her | its);
+
+<verbs> = <take> | <drop> | <look> | <open> | <shut>;
+
+<take> = (take|get|pick up|grab|steal);
+
+<drop> = (drop|lose|put down|put back);
+
+<look> = (look|look at|examine|view|find|see);
+
+<open> = (open|pull|look in);
+
+<shut> = (shut|close);
+
+<move> = (move|go|go to|walk|run|jump|travel);
+
+<nouns> = (door | jar | lamp);
+
+<numbers> = (one | two | three | four | five | six | seven | eight | nine);
+
+<animals> = (cats | dogs | mice | humans | chains | monkeys | horses);
+
+
+
