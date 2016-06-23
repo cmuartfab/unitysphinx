@@ -1,106 +1,159 @@
 ﻿using UnityEngine;
+using ui=UnityEngine.UI;
 using System.Collections;
-using System;
+using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
+
 
 public class SphinxTest : MonoBehaviour {
-	string str;
-	[SerializeField]
-	GameObject cat;
-	[SerializeField]
-	GameObject dog;
-	[SerializeField]
-	GameObject human;
-	[SerializeField]
-	GameObject horse;
-	[SerializeField]
-	GameObject mouse;
-	[SerializeField]
-	GameObject monkey;
-	GUIText guitext;
-	[SerializeField]
-	Transform spawn;
 
-	// Use this for initialization
-	void Start () {
-		guitext = GetComponent<GUIText> ();
-		UnitySphinx.Init ();
-		UnitySphinx.Run ();
-	}
+    [SerializeField] GameObject cat;
+    [SerializeField] GameObject dog;
+    [SerializeField] GameObject human;
+    [SerializeField] GameObject horse;
+    [SerializeField] GameObject mouse;
+    [SerializeField] GameObject monkey;
+    [SerializeField] Transform spawn;
 
-	void Update()
-	{
-		str = UnitySphinx.DequeueString ();
-		if (UnitySphinx.GetSearchModel() == "kws")
-		{
-			print ("listening for keyword");
-			if (str != "") {
-				UnitySphinx.SetSearchModel (UnitySphinx.SearchModel.jsgf);
-				guitext.text = "order up";
-				print (str);
-			}
-		}
-		else if (UnitySphinx.GetSearchModel() == "jsgf")
-		{
-			print ("listening for order");
-			if (str != "") 
-			{
-				guitext.text = str;
-				char[] delimChars = { ' ' };
-				string[] cmd = str.Split (delimChars);
-				int numAnimals = interpretNum(cmd [0]);
-				GameObject animal = interpretAnimal (cmd [1]);
-				for (int i=0; i < numAnimals; i++) {
-					Vector3 randPos = 
-						new Vector3 (spawn.position.x + UnityEngine.Random.Range (-0.1f, 0.1f), 
-							spawn.position.y + UnityEngine.Random.Range (-0.1f, 0.1f), 
-							spawn.position.z + UnityEngine.Random.Range (-0.1f, 0.1f));
-					Instantiate (animal, randPos, spawn.rotation);
-				}
-				UnitySphinx.SetSearchModel (UnitySphinx.SearchModel.kws);
-			}
-		}
-	}
+    //SphinxProcessor processor = new SphinxProcessor();
+    ui::Text text;
 
-	GameObject interpretAnimal(string animal)
-	{
-		GameObject a = cat;
-		if (animal == "cats")
-			a = cat;
-		else if (animal == "dogs")
-			a = dog;
-		else if (animal == "horses")
-			a = horse;
-		else if (animal == "humans")
-			a = human;
-		else if (animal == "monkeys")
-			a = monkey;
-		else if (animal == "mice")
-			a = mouse;
-		return a;
-	}
+    readonly static Dictionary<string,int> numbers =
+        new Dictionary<string,int> {
+            { "zero", 0 },
+            { "one", 1 },
+            { "two", 2 },
+            { "three", 3 },
+            { "four", 4 },
+            { "five", 5 },
+            { "six", 6 },
+            { "seven", 7 },
+            { "eight", 8 },
+            { "nine", 9 },
+            { "ten", 10 },
+            { "eleven", 11 },
+            { "twelve", 12 },
+            { "thirteen", 13 },
+            { "fourteen", 14 },
+            { "fifteen", 15 },
+            { "sixteen", 16 },
+            { "seventeen", 17 },
+            { "eightteen", 18 },
+            { "nineteen", 19 },
+            { "twenty", 20 },
+            { "thirty", 30 },
+            { "forty", 40 },
+            { "fifty", 50 },
+            { "sixty", 60 },
+            { "seventy", 70 },
+            { "eighty", 80 },
+            { "ninety", 90 },
+            { "hundred", 100 },
+            { "thousand", 1000 },
+            { "million", 1000000 },
+            { "billion", 1000000000 }};
 
-	int interpretNum(string num)
-	{
-		int i = 0;
-		if (num == "one")
-			i += 1;
-		else if (num == "two")
-			i += 2;
-		else if (num == "three")
-			i += 3;
-		else if (num == "four")
-			i += 4;
-		else if (num == "five")
-			i += 5;
-		else if (num == "six")
-			i += 6;
-		else if (num == "seven")
-			i += 7;
-		else if (num == "eight")
-			i += 8;
-		else if (num == "nine")
-			i += 9;
-		return i;
-	}
+    void Awake() {
+        text = GetComponentInChildren<ui::Text>();
+    }
+
+
+    void Start() {
+        UnitySphinx.Init();
+        UnitySphinx.Run();
+    }
+
+
+    string Process(string s) {
+        var digits = new Regex(
+            @"\b(zero|one|two|three|four|five|six|seven|eight|nine)\b");
+        var animals = new Regex(
+            @"\b(cats|dogs|mice|humans|chains|monkeys|horses)\b");
+        var verbs = new Regex(
+            @"\b(open|shut|get|take|find|steal)\b");
+        var nouns = new Regex(
+            @"\b(door|jar|lamp)\b");
+        var result = "";
+        foreach (var word in s.Split(' '))
+            if (digits.IsMatch(word)) result += numbers[word]+" ";
+            else if (animals.IsMatch(word)) result += word+" ";
+            else if (verbs.IsMatch(word)) result += word+" ";
+            else if (nouns.IsMatch(word)) result += word+" ";
+        return result;
+    }
+
+
+    void Update() {
+        var input = UnitySphinx.DequeueString();
+        if (string.IsNullOrEmpty(input)) return;
+        switch (UnitySphinx.Model) {
+            case SearchModel.kws: //print("listening for keyword");
+                UnitySphinx.Model = SearchModel.jsgf;
+                text.text += "\nWhat do <i>you</i> want? ";
+                break;
+            case SearchModel.jsgf: //print("listening for order");
+                var result = Process(input);
+                text.text += input;
+                var regex = new Regex(
+                    pattern: @"(?<number>-?\d+)\s+(?<animal>\w+)",
+                    options: RegexOptions.IgnoreCase);
+                var match = regex.Match(result);
+#if DEBUG
+print(@"
+result: "+result+@"
+----------------------------------------
+number: "+match.Groups["number"].Value+@"
+animal: "+match.Groups["animal"].Value);
+#endif
+                if (!string.IsNullOrEmpty(match.Groups["number"].Value))
+                    CreateAnimals(
+                        n: int.Parse(match.Groups["number"].Value),
+                        animal: interpretAnimal(match.Groups["animal"].Value));
+                UnitySphinx.Model = SearchModel.kws;
+                break;
+        }
+    }
+
+    void CreateAnimals(int n, GameObject animal) {
+        for (var i=0; i<n; ++i) Instantiate(
+            original: animal,
+            position: spawn.position+Random.insideUnitSphere*0.1f,
+            rotation: spawn.rotation);
+    }
+
+
+    GameObject interpretAnimal(string s) {
+        switch (s) {
+            default:
+            case "cats": return cat;
+            case "dogs": return dog;
+            case "horses": return horse;
+            case "humans": return human;
+            case "monkeys": return monkey;
+            case "mice": return mouse;
+        }
+    }
+
+
+    int interpretNum(string s) {
+        switch (s) {
+            default:
+            case "zero": return 0;
+            case "one": return 1;
+            case "two": return 2;
+            case "three": return 3;
+            case "four": return 4;
+            case "five": return 5;
+            case "six": return 6;
+            case "seven": return 7;
+            case "eight": return 8;
+            case "nine": return 9;
+        }
+    }
 }
+
+
+
+
+
